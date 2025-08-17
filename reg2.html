@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shaheir - Children Register</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+  <header class="bg-gray-100 p-4 shadow mb-4">
+    <h1 class="text-2xl font-bold">Shaheir - Children Register</h1>
+  </header>
+
+  <main class="p-6 flex-1">
+    <div id="registerTable"></div>
+  </main>
+
+  <footer class="bg-gray-100 p-4 text-center">
+    &copy; Shaheir Registry
+  </footer>
+
+  <script>
+    const WEBAPP_URL = window.location.origin + window.location.pathname + "?action=getData";
+
+    async function fetchData() {
+      try {
+        const res = await fetch(WEBAPP_URL);
+        if (!res.ok) throw new Error("Network response was not ok");
+        const data = await res.json();
+        buildTable(data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        document.getElementById("registerTable").innerHTML =
+          "<p class='text-red-500'>Error fetching data.</p>";
+      }
+    }
+
+    function buildTable(data) {
+      if (!data || data.length === 0) {
+        document.getElementById("registerTable").innerHTML =
+          "<p class='text-gray-500'>No data found.</p>";
+        return;
+      }
+
+      const columns = [
+        { title: "Currently Living", field: "currently_living" },
+        { title: "Unique ID", field: "unique_id" },
+        { title: "Foolhumaa Form No.", field: "foolhumaa_form_number" },
+        { title: "Beneficiary ID", field: "beneficiary_national_id" },
+        { title: "Name", field: "beneficiary_name" },
+        { title: "DOB", field: "dob" },
+        { title: "Time of Birth", field: "time_of_birth" },
+        { title: "Age", field: "age" },
+        { title: "Sex", field: "sex" },
+        { title: "Atoll Residence", field: "atoll_residence" },
+        { title: "Island Residence", field: "island_residence" },
+        { title: "Current Address", field: "current_address" },
+        { title: "Mother Name", field: "mother_name" },
+        { title: "Mother ID", field: "mother_national_id" },
+        { title: "Primary Contact", field: "primary_contact" },
+        { title: "Viber Number", field: "viber_number" },
+        { title: "Caregiver Name", field: "caregiver_name" },
+        { title: "Caregiver ID", field: "caregiver_id" },
+        { title: "Caregiver Contact", field: "caregiver_contact" }
+      ];
+
+      new Tabulator("#registerTable", {
+        data: data,
+        columns: columns,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 10,
+        movableColumns: true,
+        resizableRows: true,
+        tooltips: true,
+        height: "600px",
+        responsiveLayout: "collapse",
+      });
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>
