@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Immunization Register</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+    th { background: #f0f0f0; }
+    button { margin: 2px; padding: 4px 8px; }
+  </style>
+</head>
+<body>
+  <h1>Immunization Register</h1>
+  <div id="table-container">Loading...</div>
+
+  <script>
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbx12345abcde/exec"; // 🔗 your webapp url
+
+    // === Fetch all data ===
+    async function loadData() {
+      const res = await fetch(`${webAppUrl}?action=getData`);
+      const data = await res.json();
+      renderTable(data);
+    }
+
+    // === Render table ===
+    function renderTable(data) {
+      if (!data.length) {
+        document.getElementById("table-container").innerHTML = "No data found";
+        return;
+      }
+      const headers = Object.keys(data[0]);
+      let html = "<table><thead><tr>";
+      headers.forEach(h => html += `<th>${h}</th>`);
+      html += "<th>Actions</th></tr></thead><tbody>";
+
+      data.forEach(row => {
+        html += "<tr>";
+        headers.forEach(h => html += `<td>${row[h] || ""}</td>`);
+        html += `
+          <td>
+            <button onclick='deleteRow("${row.beneficiary_national_id}")'>Delete</button>
+          </td>`;
+        html += "</tr>";
+      });
+
+      html += "</tbody></table>";
+      document.getElementById("table-container").innerHTML = html;
+    }
+
+    // === Delete row ===
+    async function deleteRow(uniqueId) {
+      if (!confirm("Delete this record?")) return;
+      const res = await fetch(`${webAppUrl}?action=deleteRow&uniqueId=${encodeURIComponent(uniqueId)}`);
+      const result = await res.json();
+      alert(result.message);
+      loadData(); // reload
+    }
+
+    // === Add row example ===
+    async function addSampleRow() {
+      const rowData = {
+        beneficiary_national_id: Date.now().toString(),
+        beneficiary_name: "Test Child",
+        dob: "2023-01-01",
+        sex: "M"
+      };
+      const res = await fetch(`${webAppUrl}?action=addRow&rowData=${encodeURIComponent(JSON.stringify(rowData))}`);
+      const result = await res.json();
+      alert(result.message);
+      loadData();
+    }
+
+    // Run on page load
+    loadData();
+  </script>
+  <button onclick="addSampleRow()">➕ Add Test Row</button>
+</body>
+</html>
