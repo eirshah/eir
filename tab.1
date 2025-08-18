@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Immunization Registry Table</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Immunization Registry Data</h2>
+<table id="dataTable">
+  <thead>
+    <!-- Headers will be inserted dynamically -->
+  </thead>
+  <tbody>
+    <!-- Data rows will be inserted dynamically -->
+  </tbody>
+</table>
+
+<script>
+const webAppUrl = "https://script.google.com/macros/s/AKfycbwLn6_jHlnCgKyvy6LkZ4kdovvT4t7_Ig1ucJOU6QYDEx6OyWaFfqnMM5QCCRZdnh3h/exec?action=getdata";
+
+fetch(webAppUrl)
+  .then(response => response.json())
+  .then(data => {
+    if (!data.length) {
+      document.getElementById('dataTable').innerHTML = "<tr><td colspan='100%'>No data found</td></tr>";
+      return;
+    }
+
+    // Create headers
+    const headers = Object.keys(data[0]);
+    const thead = document.querySelector("#dataTable thead");
+    const headerRow = document.createElement("tr");
+    headers.forEach(h => {
+      const th = document.createElement("th");
+      th.textContent = h;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+
+    // Create rows
+    const tbody = document.querySelector("#dataTable tbody");
+    data.forEach(row => {
+      const tr = document.createElement("tr");
+      headers.forEach(h => {
+        const td = document.createElement("td");
+        td.textContent = row[h] || "";
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById('dataTable').innerHTML = "<tr><td colspan='100%'>Error loading data</td></tr>";
+  });
+</script>
+
+</body>
+</html>
