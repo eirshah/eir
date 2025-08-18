@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Immunization Register</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  table { border-collapse: collapse; width: 100%; overflow-x: auto; display: block; }
+  th, td { border: 1px solid #ccc; padding: 5px; text-align: left; white-space: nowrap; }
+  th { background: #f0f0f0; position: sticky; top: 0; z-index: 1; }
+  input[type="text"], input[type="date"] { margin: 5px; width: 140px; }
+  input.missing { background-color: #ffdddd; }
+  button { margin: 5px; }
+  .scroll-container { overflow-x: auto; }
+  #addForm { margin-bottom: 20px; }
+  #addForm div { margin-bottom: 5px; }
+  .pagination { margin-top: 10px; }
+  .pagination button { margin-right: 5px; }
+</style>
+</head>
+<body>
+
+<h2>Immunization Register</h2>
+
+<div>
+  <label>Filter by beneficiary name:</label>
+  <input type="text" id="filterName" placeholder="Enter name...">
+  <button onclick="loadData()">Filter</button>
+  <button onclick="loadData(true)">Reset</button>
+</div>
+
+<div id="addForm">
+  <h3>Add New Beneficiary</h3>
+  <div id="formFields"></div>
+  <button onclick="addRow()">Add Row</button>
+</div>
+
+<div class="scroll-container">
+  <table id="dataTable">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div class="pagination" id="pagination"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyUbHqk-5NqgtR0VVBYHEYI0Xlup6WE_JWkVIr8N9G9nhF4JRTq3dPtADOuqUhvZGKB/exec";
+let headers = [];
+let data = [];
+let currentPage = 1;
+const rowsPerPage = 20;
+
+// Load data from Web App
+async function loadData(reset=false) {
+  const filterInput = document.getElementById('filterName').value.trim().toLowerCase();
+  const filters = (!reset && filterInput) ? { beneficiary_name: filterInput } : {};
+  
+  const res = await fetch(`${API_URL}?action=getData&filters=${encodeURIComponent(JSON.stringify(filters))}`);
+  data = await res.json();
+  
+  if (data.length === 0) {
+    document.getElementById('dataTable').innerHTML = "<tr><td>No records found</td></tr>";
+    return;
+  }
+  
+  headers = Object.keys(data[0]);
+  renderTable();
+  renderAddForm();
+  renderPagination();
+}
+
+// Render table with pagination
+function renderTable() {
+  const thead = document.querySelector("#dataTable thead");
+  const tbody = document.querySelector("#dataTable tbody");
+  thead.innerHTML = "";
+  tbody.innerHTML = "";
+
+  // Header row
+  const headerRow = document.createElement('tr');
+  headers.forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    headerRow.appendChild(th);
+  });
+  headerRow.appendChild(document.createElement('th')); // Actions
+  thead.appendChild(headerRow);
+
+  // Paginated rows
+  const start = (currentPage - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+  const pageData = data.slice(start, end);
+
+  pageData.forEach(row => {
+    const tr = document.createElement('tr');
+    headers.forEach(h => {
+      const td = document.createElement('td');
+      let input;
+
+      // Use date picker if field contains "date"
+      if (h.toLowerCase().includes("date")) {
+        input = document.createElement('input');
+        input.type = 'date';
+        input.value = row[h] || '';
+        if (!row[h]) input.classList.add('missing'); // highlight missing
+      } else {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = row[h] || '';
+      }
+
+      input.dataset.field = h;
+      input.dataset.id = row['beneficiary_national_id'];
+      input.addEventListener('change', updateCell);
+      td.appendChild(input);
+      tr.appendChild(td);
+    });
+
+    // Delete button
+    const tdAction = document.createElement('td');
+    const btnDelete = document.createElement('button');
+    btnDelete.textContent = "Delete";
+    btnDelete.onclick = () => deleteRow(row['beneficiary_national_id']);
+    tdAction.appendChild(btnDelete);
+    tr.appendChild(tdAction);
+
+    tbody.appendChild(tr);
+  });
+}
+
+// Render dynamic Add New Row form
+function renderAddForm() {
+  const formDiv = document.getElementById('formFields');
+  formDiv.innerHTML = "";
+  headers.forEach(h => {
+    const div = document.createElement('div');
+    const label = document.createElement('label');
+    label.textContent = h + ": ";
+    let input = document.createElement('input');
+    input.id = 'new_' + h;
+    input.type = h.toLowerCase().includes("date") ? 'date' : 'text';
+    div.appendChild(label);
+    div.appendChild(input);
+    formDiv.appendChild(div);
+  });
+}
+
+// Update a single cell
+async function updateCell(e) {
+  const field = e.target.dataset.field;
+  const uniqueId = e.target.dataset.id;
+  const value = e.target.value;
+  
+  const res = await fetch(`${API_URL}?action=updateCell&update=${encodeURIComponent(JSON.stringify({ uniqueId, field, value }))}`);
+  const resp = await res.json();
+  console.log(resp);
+}
+
+// Delete a row
+async function deleteRow(uniqueId) {
+  if (!confirm("Are you sure you want to delete this row?")) return;
+  const res = await fetch(`${API_URL}?action=deleteRow&uniqueId=${encodeURIComponent(uniqueId)}`);
+  const resp = await res.json();
+  console.log(resp);
+  loadData(true);
+}
+
+// Add new row
+async function addRow() {
+  const newRow = {};
+  headers.forEach(h => {
+    const val = document.getElementById('new_' + h)?.value || "";
+    newRow[h] = val;
+  });
+
+  if (!newRow['beneficiary_national_id'] || !newRow['beneficiary_name']) {
+    alert("Beneficiary ID and Name are required.");
+    return;
+  }
+
+  const res = await fetch(`${API_URL}?action=addRow&rowData=${encodeURIComponent(JSON.stringify(newRow))}`);
+  const resp = await res.json();
+  console.log(resp);
+
+  headers.forEach(h => {
+    const input = document.getElementById('new_' + h);
+    if (input) input.value = "";
+  });
+
+  loadData(true);
+}
+
+// Pagination controls
+function renderPagination() {
+  const pagDiv = document.getElementById('pagination');
+  pagDiv.innerHTML = "";
+
+  const totalPages = Math.ceil(data.length / rowsPerPage);
+  if (totalPages <= 1) return;
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    if (i === currentPage) btn.disabled = true;
+    btn.onclick = () => { currentPage = i; renderTable(); };
+    pagDiv.appendChild(btn);
+  }
+}
+
+// Initial load
+loadData(true);
+</script>
+
+</body>
+</html>
