@@ -5,14 +5,18 @@
 <title>Immunization Register</title>
 <style>
   body { font-family: Arial, sans-serif; margin: 20px; }
-  table { border-collapse: collapse; width: 100%; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; }
   th, td { border: 1px solid #ccc; padding: 5px; text-align: left; }
   th { background-color: #f0f0f0; }
+  #status { margin-top: 10px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; }
+  .error { color: red; }
+  .success { color: green; }
 </style>
 </head>
 <body>
 
 <h2>Immunization Register</h2>
+<div id="status">Loading data...</div>
 <table id="dataTable">
   <thead></thead>
   <tbody></tbody>
@@ -22,14 +26,23 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbzBNavAk8fl4rXz3qUyKI8UaF5OHYC1z6ITDS2IgBpuS1Lww7wMezBDrz9P6jPxPIwq/exec";
 
 async function loadData() {
+  const statusDiv = document.getElementById('status');
   try {
+    statusDiv.textContent = "Fetching data from Web App...";
+    
     const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    
     const data = await res.json();
-
+    
     if (!data || data.length === 0) {
-      document.getElementById('dataTable').innerHTML = "<tr><td>No data found</td></tr>";
+      statusDiv.textContent = "No data found in the sheet.";
+      statusDiv.className = "error";
       return;
     }
+
+    statusDiv.textContent = `Loaded ${data.length} rows successfully.`;
+    statusDiv.className = "success";
 
     // Build headers
     const headers = Object.keys(data[0]);
@@ -56,7 +69,8 @@ async function loadData() {
 
   } catch (err) {
     console.error("Error fetching data:", err);
-    document.getElementById('dataTable').innerHTML = "<tr><td>Error loading data</td></tr>";
+    statusDiv.textContent = `Error fetching data: ${err.message}`;
+    statusDiv.className = "error";
   }
 }
 
